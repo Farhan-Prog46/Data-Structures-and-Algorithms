@@ -32,7 +32,7 @@ def fibonacci(n):
 
 
 print("Name: Syed Farhan Zaheer Hussainy")
-print("Lab Number: 1")
+print("Lab Number: 01")
 print("Algorithm Name: Fibonacci Series")
 print("------------------------------------")
 
