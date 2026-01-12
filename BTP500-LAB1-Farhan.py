@@ -6,16 +6,22 @@ def fibonacci(n):
     Big-O Space: n
     
     """
-    FibonacciSeries = []
+    FibonacciSeries = []         # 1
 
-    a = 0
-    b = 1
+    a = 0                        # 1
+    b = 1                        # 1
 
-    for i in range(n):
-        FibonacciSeries.append(a)
-        a, b = b, a + b
+    for i in range(n):           # n + 1
+                                 # n times to "advance i" through the loop 
+                                 # +1 for the loop/range setup (constant)
 
-    return FibonacciSeries
+        FibonacciSeries.append(a) # 1 * n (constant work each iteration)
+        a, b = b, a + b           # 2 * n 
+                                  # 1 for the + operation (a + b)
+                                  # 1 for the assignment/update (updating a and b)
+                                  # happens n times
+                                  
+    return FibonacciSeries         # 1 
 
 
 print("Name: Syed Farhan Zaheer Hussainy")
