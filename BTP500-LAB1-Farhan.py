@@ -1,3 +1,10 @@
+# ----------------------------------------------------------
+# Student Name: Syed Farhan Zaheer Hussainy
+# Lab Number: 01
+# Algorithm Name: Fibonacci Series
+# ----------------------------------------------------------
+
+
 def fibonacci(n):
     """
     Function Name: fibonacci
