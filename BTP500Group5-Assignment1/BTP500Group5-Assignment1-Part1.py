@@ -1,8 +1,6 @@
 import pandas as pd
 import os
 
-
-
 # Get the folder where this .py file is located
 base_dir = os.path.dirname(os.path.abspath(__file__))
 file_path = os.path.join(base_dir, "by-age-excel.xlsx")
@@ -53,3 +51,43 @@ else:
     print("\nLast 10 rows of the final 2D array:")
     for row in data_2d[-10:]:
         print(row)
+
+#----------------------------------------------------------------
+# TASK 2 — SORTING 
+
+SORT_COL = col_index["cumulative_confirmed_age_0"]
+
+# Insertion Sort
+def insertion_sort(arr, col):
+    data = arr.copy()
+    for i in range(1, len(data)):
+        curr = data[i]
+        j = i
+        while j > 0 and data[j - 1][col] > curr[col]:
+            data[j] = data[j - 1]
+            j -= 1
+        data[j] = curr
+    return data
+
+# Merge Sort
+def merge(left, right, col):
+    result = []
+    i = j = 0
+    while i < len(left) and j < len(right):
+        if left[i][col] <= right[j][col]:
+            result.append(left[i])
+            i += 1
+        else:
+            result.append(right[j])
+            j += 1
+    result.extend(left[i:])
+    result.extend(right[j:])
+    return result
+
+def merge_sort(data, col):
+    if len(data) <= 1:
+        return data
+    mid = len(data) // 2
+    left = merge_sort(data[:mid], col)
+    right = merge_sort(data[mid:], col)
+    return merge(left, right, col)
