@@ -4,9 +4,7 @@ import time
 import random
 import matplotlib.pyplot as plt
 
-# ============================================================
-# LOAD EXCEL -> BUILD 2D ARRAY
-# ============================================================
+# LOAD EXCEL
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 file_path = os.path.join(base_dir, "TestsConducted_AllDates_13July2020.csv.xlsx")
@@ -50,19 +48,16 @@ print("\nLast 10 rows:")
 for r in data_2d[-10:]:
     print(r)
 
-# ============================================================
+
 # HELPER FOR COMPARISON
-# ============================================================
 
 def key_value(row, col):
     if col == col_index["Country"]:
         return str(row[col]).strip().lower()
     return float(row[col])
 
-# ============================================================
 # SORTING ALGORITHMS
-# ============================================================
-
+# Isertion
 def insertion_sort(arr, col):
     data = arr.copy()
     for i in range(1, len(data)):
@@ -74,6 +69,7 @@ def insertion_sort(arr, col):
         data[j + 1] = key
     return data
 
+# merge
 def merge(left, right, col):
     result = []
     i = j = 0
@@ -98,6 +94,7 @@ def merge_sort(arr, col):
         col
     )
 
+# quick sort
 def quick_sort(arr, col):
     if len(arr) <= 1:
         return arr
@@ -107,9 +104,7 @@ def quick_sort(arr, col):
     right = [x for x in arr if key_value(x, col) > pivot]
     return quick_sort(left, col) + middle + quick_sort(right, col)
 
-# ============================================================
-# PLOTTING FUNCTION (NO AGGREGATION)
-# ============================================================
+# PLOTTING FUNCTION
 
 def plot_bar_rows(rows, title, filename):
     x = [str(r[col_index["Country"]]) for r in rows]
@@ -127,9 +122,7 @@ def plot_bar_rows(rows, title, filename):
     plt.close()
     print("Saved graph:", filename)
 
-# ============================================================
-# TRUE BEFORE vs AFTER COMPARISON (SAME DATA)
-# ============================================================
+# Random sample data to test 
 
 SORT_COL = col_index["Tested"]
 
@@ -137,11 +130,11 @@ sample_10 = data_2d.copy()
 random.shuffle(sample_10)
 sample_10 = sample_10[:10]
 
-# BEFORE sorting
+# BEFORE sorting graph
 plot_bar_rows(
     sample_10,
     "Same 10 Records by Tested (BEFORE Sorting)",
-    "bar_tested_before.png"
+    "before_testing.png"
 )
 
 # AFTER Insertion Sort
@@ -149,7 +142,7 @@ sample_insertion = insertion_sort(sample_10, SORT_COL)
 plot_bar_rows(
     sample_insertion[::-1],
     "Same 10 Records by Tested (AFTER Insertion Sort)",
-    "bar_tested_after_insertion.png"
+    "after_insertion.png"
 )
 
 # AFTER Merge Sort
@@ -157,7 +150,7 @@ sample_merge = merge_sort(sample_10, SORT_COL)
 plot_bar_rows(
     sample_merge[::-1],
     "Same 10 Records by Tested (AFTER Merge Sort)",
-    "bar_tested_after_merge.png"
+    "after_merge.png"
 )
 
 # AFTER Quick Sort
@@ -165,19 +158,17 @@ sample_quick = quick_sort(sample_10, SORT_COL)
 plot_bar_rows(
     sample_quick[::-1],
     "Same 10 Records by Tested (AFTER Quick Sort)",
-    "bar_tested_after_quick.png"
+    "after_quick.png"
 )
 
-# ============================================================
-# TIMING COMPARISON
-# ============================================================
+# TIME COMPARISON
 
 def time_algorithm(func, arr, col):
     start = time.time()
     func(arr, col)
     return time.time() - start
 
-sizes = [50, 100, 200, 400, 800, min(1000, len(data_2d))]
+sizes = [50, 100, 200, 400, 800, min(1000, len(data_2d))] # size of data used to compare time taken by algorithms
 
 insertion_times = []
 merge_times = []
@@ -196,7 +187,7 @@ for s in sizes:
     random.shuffle(subset)
     quick_times.append(time_algorithm(quick_sort, subset, SORT_COL))
 
-# -------- PRINT TIMING TABLE (YOUR REQUIRED FORMAT) --------
+# DISPLAY TIMINGS
 
 print("\nTiming Results (seconds):")
 for i in range(len(sizes)):
@@ -207,7 +198,7 @@ for i in range(len(sizes)):
         f"quick={quick_times[i]:.6f}"
     )
 
-
+# bar graph for time comparison
 n_index = sizes.index(max(sizes))
 
 plt.figure()
@@ -220,20 +211,16 @@ plt.bar(
     ]
 )
 
-plt.yscale("log")   # <<< THIS IS THE KEY LINE
-
+plt.yscale("log")   
 plt.title(f"Sorting Time Comparison for n = {sizes[n_index]} (Log Scale)")
 plt.xlabel("Sorting Algorithm")
 plt.ylabel("Time (seconds, log scale)")
 plt.tight_layout()
-
 plt.savefig(os.path.join(base_dir, "sorting_time_bar_comparison_log.png"))
 plt.close()
 
 
-# ============================================================
 # SEARCHING (LINEAR & BINARY)
-# ============================================================
 
 def linear_search(arr, col, target):
     for i in range(len(arr)):
@@ -254,8 +241,9 @@ def binary_search(arr, col, target):
         else:
             high = mid - 1
     return -1
-
-print("\n=== SEARCH RESULTS ===")
+    
+# DISPLAY SEARCH RESULTS
+print("\nSEARCH RESULTS")
 sorted_full = merge_sort(data_2d.copy(), SORT_COL)
 
 success_val = sorted_full[-1][SORT_COL]
