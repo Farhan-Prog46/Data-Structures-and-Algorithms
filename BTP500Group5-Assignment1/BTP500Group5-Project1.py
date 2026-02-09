@@ -4,7 +4,7 @@ import time
 import random
 import matplotlib.pyplot as plt
 
-# LOAD EXCEL
+# TASK 1 — LOAD EXCEL --------------------------------------------------------------------
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 file_path = os.path.join(base_dir, "TestsConducted_AllDates_13July2020.csv.xlsx")
@@ -48,15 +48,13 @@ print("\nLast 10 rows:")
 for r in data_2d[-10:]:
     print(r)
 
-
 # HELPER FOR COMPARISON
-
 def key_value(row, col):
     if col == col_index["Country"]:
         return str(row[col]).strip().lower()
     return float(row[col])
 
-# SORTING ALGORITHMS
+# TASK 2 — SORTING ALGORITHMS --------------------------------------------------------------------
 # Isertion
 def insertion_sort(arr, col):
     data = arr.copy()
@@ -105,7 +103,6 @@ def quick_sort(arr, col):
     return quick_sort(left, col) + middle + quick_sort(right, col)
 
 # PLOTTING FUNCTION
-
 def plot_bar_rows(rows, title, filename):
     x = [str(r[col_index["Country"]]) for r in rows]
     y = [float(r[col_index["Tested"]]) for r in rows]
@@ -123,7 +120,6 @@ def plot_bar_rows(rows, title, filename):
     print("Saved graph:", filename)
 
 # Random sample data to test 
-
 SORT_COL = col_index["Tested"]
 
 sample_10 = data_2d.copy()
@@ -220,7 +216,7 @@ plt.savefig(os.path.join(base_dir, "sorting_time_bar_comparison_log.png"))
 plt.close()
 
 
-# SEARCHING (LINEAR & BINARY)
+# TASK 3 — SEARCHING (LINEAR & BINARY) --------------------------------------------------------------------
 
 def linear_search(arr, col, target):
     for i in range(len(arr)):
@@ -241,7 +237,7 @@ def binary_search(arr, col, target):
         else:
             high = mid - 1
     return -1
-    
+
 # DISPLAY SEARCH RESULTS
 print("\nSEARCH RESULTS")
 sorted_full = merge_sort(data_2d.copy(), SORT_COL)
