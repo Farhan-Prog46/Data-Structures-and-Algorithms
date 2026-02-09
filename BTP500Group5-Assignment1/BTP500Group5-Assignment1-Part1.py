@@ -91,3 +91,76 @@ def merge_sort(data, col):
     left = merge_sort(data[:mid], col)
     right = merge_sort(data[mid:], col)
     return merge(left, right, col)
+
+# Quick Sort
+def quick_sort(data, col):
+    if len(data) <= 1:
+        return data
+    pivot = data[len(data) // 2][col]
+    left = []
+    middle = []
+    right = []
+    for row in data:
+        if row[col] < pivot:
+            left.append(row)
+        elif row[col] > pivot:
+            right.append(row)
+        else:
+            middle.append(row)
+    return quick_sort(left, col) + middle + quick_sort(right, col)
+
+# Bar Graph Function
+def plot_first_10(data, title):
+    labels = []
+    values = []
+    for row in data[:10]:
+        labels.append(row[col_index["location_key"]])
+        values.append(row[SORT_COL])
+
+    plt.figure()
+    plt.bar(labels, values)
+    plt.xticks(rotation=45)
+    plt.title(title)
+    plt.xlabel("Location")
+    plt.ylabel("Cumulative Confirmed Age 0")
+    plt.tight_layout()
+    plt.show()
+
+# Before Sorting
+plot_first_10(data_2d, "First 10 Records Before Sorting")
+
+# Time Comparison
+sizes = [100, 300, 600, len(data_2d)]
+ins_t = []
+merge_t = []
+quick_t = []
+
+for s in sizes:
+    subset = data_2d[:s]
+
+    start = time.time()
+    insertion_sort(subset, SORT_COL)
+    ins_t.append(time.time() - start)
+
+    start = time.time()
+    merge_sort(subset, SORT_COL)
+    merge_t.append(time.time() - start)
+
+    start = time.time()
+    quick_sort(subset, SORT_COL)
+    quick_t.append(time.time() - start)
+
+plt.figure()
+plt.plot(sizes, ins_t, label="Insertion Sort")
+plt.plot(sizes, merge_t, label="Merge Sort")
+plt.plot(sizes, quick_t, label="Quick Sort")
+plt.xlabel("Input Size")
+plt.ylabel("Time (seconds)")
+plt.title("Sorting Algorithm Time Comparison")
+plt.legend()
+plt.show()
+
+sorted_data = merge_sort(data_2d, SORT_COL)
+
+# After Sorting
+plot_first_10(sorted_data, "First 10 Records After Sorting")
