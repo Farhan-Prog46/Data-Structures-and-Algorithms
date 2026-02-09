@@ -1,46 +1,52 @@
 import pandas as pd
 import os
+import time
+import random
+import matplotlib.pyplot as plt
 
-# Get the folder where this .py file is located
+# ============================================================
+# LOAD EXCEL -> BUILD 2D ARRAY (TestsConducted Dataset)
+# ============================================================
+
 base_dir = os.path.dirname(os.path.abspath(__file__))
-file_path = os.path.join(base_dir, "by-age-excel.xlsx")
+file_path = os.path.join(base_dir, "TestsConducted_AllDates_13July2020.csv.xlsx")
 
-# Read Excel
-df = pd.read_excel(file_path, engine="openpyxl", nrows=1000)
-
-# Choose required columns 
 required_cols = [
-    "date",
-    "location_key",
-    "new_confirmed_age_0",
-    "cumulative_confirmed_age_0",
-    "new_deceased_age_0",
-    "cumulative_deceased_age_0",
+    "Country",
+    "Date",
+    "Tested",
+    "Positive",
+    "Positive/Tested %"
 ]
 
-# Check missing columns
+df = pd.read_excel(file_path, engine="openpyxl", nrows=1000)
+
 missing = []
 for c in required_cols:
     if c not in df.columns:
         missing.append(c)
 
 if len(missing) > 0:
-    print("ERROR: These columns are missing in the Excel file:", missing)
-    print("Available columns are:", df.columns.tolist())
+    print("ERROR: Missing columns:", missing)
+    print("Available columns:", df.columns.tolist())
 else:
-    # Keep only the required columns
     df_required = df[required_cols].copy()
 
-    # Make the date consistent (string format)
-    df_required["date"] = df_required["date"].astype(str)
-
-    # Replace NaN with 0 to make output cleaner
+    # Clean
+    df_required["Date"] = df_required["Date"].astype(str)
     df_required = df_required.fillna(0)
 
-    # Convert to 2D array (list of lists)
+    # Make sure numeric columns are numeric
+    df_required["Tested"] = pd.to_numeric(df_required["Tested"], errors="coerce").fillna(0)
+    df_required["Positive"] = pd.to_numeric(df_required["Positive"], errors="coerce").fillna(0)
+    df_required["Positive/Tested %"] = pd.to_numeric(df_required["Positive/Tested %"], errors="coerce").fillna(0)
+
+    # Convert to 2D array
     data_2d = df_required.values.tolist()
 
-    
+    # Column index map
+    col_index = {name: i for i, name in enumerate(required_cols)}
+
     print("Required columns:", required_cols)
     print("Total rows loaded:", len(data_2d))
 
@@ -52,115 +58,268 @@ else:
     for row in data_2d[-10:]:
         print(row)
 
-#----------------------------------------------------------------
-# TASK 2 — SORTING 
+    # ============================================================
+    # Helper: compare values safely (string for Country, float for numeric)
+    # ============================================================
 
-SORT_COL = col_index["cumulative_confirmed_age_0"]
-
-# Insertion Sort
-def insertion_sort(arr, col):
-    data = arr.copy()
-    for i in range(1, len(data)):
-        curr = data[i]
-        j = i
-        while j > 0 and data[j - 1][col] > curr[col]:
-            data[j] = data[j - 1]
-            j -= 1
-        data[j] = curr
-    return data
-
-# Merge Sort
-def merge(left, right, col):
-    result = []
-    i = j = 0
-    while i < len(left) and j < len(right):
-        if left[i][col] <= right[j][col]:
-            result.append(left[i])
-            i += 1
+    def key_value(row, col):
+        if col == col_index["Country"]:
+            return str(row[col]).strip().lower()
         else:
-            result.append(right[j])
-            j += 1
-    result.extend(left[i:])
-    result.extend(right[j:])
-    return result
+            return float(row[col])
 
-def merge_sort(data, col):
-    if len(data) <= 1:
+    # ============================================================
+    # PLOTTING: Top 10 countries by Tested / Positive (GROUPED)
+    # ============================================================
+
+    def plot_bar_top10_grouped(rows, title, country_col, value_col, filename):
+        totals = {}
+
+        for r in rows:
+            country = str(r[col_index[country_col]]).strip()
+            value = float(r[col_index[value_col]])
+            totals[country] = totals.get(country, 0) + value
+
+        top10 = sorted(totals.items(), key=lambda x: x[1], reverse=True)[:10]
+
+        x = [c for c, _ in top10]
+        y = [v for _, v in top10]
+
+        plt.figure()
+        plt.bar(x, y)
+        plt.title(title)
+        plt.xlabel("Country")
+        plt.ylabel(value_col)
+        plt.xticks(rotation=45, ha="right")
+        plt.tight_layout()
+
+        out_path = os.path.join(base_dir, filename)
+        plt.savefig(out_path)
+        plt.close()
+        print("Saved graph:", out_path)
+
+    # BEFORE sorting graphs
+    plot_bar_top10_grouped(
+        data_2d,
+        "Top 10 Countries by Tested (Total Tests) - BEFORE Sorting",
+        "Country",
+        "Tested",
+        "bar_tested_before.png"
+    )
+
+    plot_bar_top10_grouped(
+        data_2d,
+        "Top 10 Countries by Positive (Total Positive) - BEFORE Sorting",
+        "Country",
+        "Positive",
+        "bar_positive_before.png"
+    )
+
+    # ============================================================
+    # SORTING (Insertion, Merge, Quick) - works for string + numeric
+    # ============================================================
+
+    def insertion_sort(arr, col):
+        data = arr.copy()
+        for i in range(1, len(data)):
+            key_row = data[i]
+            j = i - 1
+            while j >= 0 and key_value(data[j], col) > key_value(key_row, col):
+                data[j + 1] = data[j]
+                j -= 1
+            data[j + 1] = key_row
         return data
-    mid = len(data) // 2
-    left = merge_sort(data[:mid], col)
-    right = merge_sort(data[mid:], col)
-    return merge(left, right, col)
 
-# Quick Sort
-def quick_sort(data, col):
-    if len(data) <= 1:
-        return data
-    pivot = data[len(data) // 2][col]
-    left = []
-    middle = []
-    right = []
-    for row in data:
-        if row[col] < pivot:
-            left.append(row)
-        elif row[col] > pivot:
-            right.append(row)
-        else:
-            middle.append(row)
-    return quick_sort(left, col) + middle + quick_sort(right, col)
+    def merge(left, right, col):
+        result = []
+        i = j = 0
+        while i < len(left) and j < len(right):
+            if key_value(left[i], col) <= key_value(right[j], col):
+                result.append(left[i])
+                i += 1
+            else:
+                result.append(right[j])
+                j += 1
+        result.extend(left[i:])
+        result.extend(right[j:])
+        return result
 
-# Bar Graph Function
-def plot_first_10(data, title):
-    labels = []
-    values = []
-    for row in data[:10]:
-        labels.append(row[col_index["location_key"]])
-        values.append(row[SORT_COL])
+    def merge_sort(arr, col):
+        if len(arr) <= 1:
+            return arr
+        mid = len(arr) // 2
+        left = merge_sort(arr[:mid], col)
+        right = merge_sort(arr[mid:], col)
+        return merge(left, right, col)
+
+    def quick_sort(arr, col):
+        if len(arr) <= 1:
+            return arr
+        pivot = key_value(arr[len(arr) // 2], col)
+        left = [x for x in arr if key_value(x, col) < pivot]
+        middle = [x for x in arr if key_value(x, col) == pivot]
+        right = [x for x in arr if key_value(x, col) > pivot]
+        return quick_sort(left, col) + middle + quick_sort(right, col)
+
+    # Sort by Tested
+    SORT_HEADER = "Tested"
+    SORT_COL = col_index[SORT_HEADER]
+
+    shuffled = data_2d.copy()
+    random.shuffle(shuffled)
+
+    sorted_data = merge_sort(shuffled, SORT_COL)
+
+    print("\nSorted by:", SORT_HEADER)
+    print("First 10 rows AFTER sorting:")
+    for row in sorted_data[:10]:
+        print(row)
+
+    print("\nLast 10 rows AFTER sorting:")
+    for row in sorted_data[-10:]:
+        print(row)
+
+    # AFTER sorting graphs
+    plot_bar_top10_grouped(
+        sorted_data,
+        "Top 10 Countries by Tested (Total Tests) - AFTER Sorting",
+        "Country",
+        "Tested",
+        "bar_tested_after.png"
+    )
+
+    plot_bar_top10_grouped(
+        sorted_data,
+        "Top 10 Countries by Positive (Total Positive) - AFTER Sorting",
+        "Country",
+        "Positive",
+        "bar_positive_after.png"
+    )
+
+    # ============================================================
+    # TIMING COMPARISON GRAPH
+    # ============================================================
+
+    def time_algorithm(func, arr, col):
+        start = time.time()
+        func(arr, col)
+        end = time.time()
+        return end - start
+
+    sizes = [50, 100, 200, 400, 800, min(1000, len(data_2d))]
+
+    insertion_times = []
+    merge_times = []
+    quick_times = []
+
+    for s in sizes:
+        subset = data_2d[:s].copy()
+        random.shuffle(subset)
+        insertion_times.append(time_algorithm(insertion_sort, subset, SORT_COL))
+
+        subset = data_2d[:s].copy()
+        random.shuffle(subset)
+        merge_times.append(time_algorithm(merge_sort, subset, SORT_COL))
+
+        subset = data_2d[:s].copy()
+        random.shuffle(subset)
+        quick_times.append(time_algorithm(quick_sort, subset, SORT_COL))
+
+    print("\nTiming Results (seconds):")
+    for i in range(len(sizes)):
+        print(f"n={sizes[i]} | insertion={insertion_times[i]:.6f} | merge={merge_times[i]:.6f} | quick={quick_times[i]:.6f}")
 
     plt.figure()
-    plt.bar(labels, values)
-    plt.xticks(rotation=45)
-    plt.title(title)
-    plt.xlabel("Location")
-    plt.ylabel("Cumulative Confirmed Age 0")
+    plt.plot(sizes, insertion_times, marker="o", label="Insertion Sort")
+    plt.plot(sizes, merge_times, marker="o", label="Merge Sort")
+    plt.plot(sizes, quick_times, marker="o", label="Quick Sort")
+    plt.title(f"Sorting Time Comparison (sorted by {SORT_HEADER})")
+    plt.xlabel("Input size (n rows)")
+    plt.ylabel("Time (seconds)")
+    plt.legend()
+    plt.grid(True)
     plt.tight_layout()
-    plt.show()
 
-# Before Sorting
-plot_first_10(data_2d, "First 10 Records Before Sorting")
+    out_path = os.path.join(base_dir, "sorting_time_comparison.png")
+    plt.savefig(out_path)
+    plt.close()
+    print("Saved graph:", out_path)
 
-# Time Comparison
-sizes = [100, 300, 600, len(data_2d)]
-ins_t = []
-merge_t = []
-quick_t = []
+    # ============================================================
+    # SEARCHING (Linear + Binary) on two columns: Country + Tested
+    # ============================================================
 
-for s in sizes:
-    subset = data_2d[:s]
+    def linear_search(arr, col, target):
+        if col == col_index["Country"]:
+            target_key = str(target).strip().lower()
+            for i in range(len(arr)):
+                if str(arr[i][col]).strip().lower() == target_key:
+                    return i
+        else:
+            target_val = float(target)
+            for i in range(len(arr)):
+                if float(arr[i][col]) == target_val:
+                    return i
+        return -1
 
-    start = time.time()
-    insertion_sort(subset, SORT_COL)
-    ins_t.append(time.time() - start)
+    def binary_search(arr_sorted, col, target):
+        low = 0
+        high = len(arr_sorted) - 1
 
-    start = time.time()
-    merge_sort(subset, SORT_COL)
-    merge_t.append(time.time() - start)
+        if col == col_index["Country"]:
+            target_key = str(target).strip().lower()
+        else:
+            target_key = float(target)
 
-    start = time.time()
-    quick_sort(subset, SORT_COL)
-    quick_t.append(time.time() - start)
+        while low <= high:
+            mid = (low + high) // 2
+            mid_val = key_value(arr_sorted[mid], col)
 
-plt.figure()
-plt.plot(sizes, ins_t, label="Insertion Sort")
-plt.plot(sizes, merge_t, label="Merge Sort")
-plt.plot(sizes, quick_t, label="Quick Sort")
-plt.xlabel("Input Size")
-plt.ylabel("Time (seconds)")
-plt.title("Sorting Algorithm Time Comparison")
-plt.legend()
-plt.show()
+            if mid_val == target_key:
+                return mid
+            elif mid_val < target_key:
+                low = mid + 1
+            else:
+                high = mid - 1
 
-sorted_data = merge_sort(data_2d, SORT_COL)
+        return -1
 
-# After Sorting
-plot_first_10(sorted_data, "First 10 Records After Sorting")
+    def binary_search_by_column(arr, col, target):
+        arr_sorted = merge_sort(arr.copy(), col)
+        idx = binary_search(arr_sorted, col, target)
+        return idx, arr_sorted
+
+    # Success + fail examples
+    country_success = data_2d[0][col_index["Country"]]
+    country_fail = "ZZZ_NOT_REAL"
+
+    tested_success = float(data_2d[0][col_index["Tested"]])
+    tested_fail = 999999999999.0
+
+    print("\n=== SEARCHING RESULTS ===")
+
+    print("\n--- LINEAR SEARCH ---")
+    idx = linear_search(data_2d, col_index["Country"], country_success)
+    print("Linear SUCCESS (Country):", idx)
+
+    idx = linear_search(data_2d, col_index["Country"], country_fail)
+    print("Linear FAIL (Country):", idx)
+
+    idx = linear_search(data_2d, col_index["Tested"], tested_success)
+    print("Linear SUCCESS (Tested):", idx)
+
+    idx = linear_search(data_2d, col_index["Tested"], tested_fail)
+    print("Linear FAIL (Tested):", idx)
+
+    print("\n--- BINARY SEARCH ---")
+    idx, _ = binary_search_by_column(data_2d, col_index["Country"], country_success)
+    print("Binary SUCCESS (Country):", idx)
+
+    idx, _ = binary_search_by_column(data_2d, col_index["Country"], country_fail)
+    print("Binary FAIL (Country):", idx)
+
+    idx, _ = binary_search_by_column(data_2d, col_index["Tested"], tested_success)
+    print("Binary SUCCESS (Tested):", idx)
+
+    idx, _ = binary_search_by_column(data_2d, col_index["Tested"], tested_fail)
+    print("Binary FAIL (Tested):", idx)
